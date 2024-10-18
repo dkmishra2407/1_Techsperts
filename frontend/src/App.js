@@ -1,24 +1,13 @@
-import logo from './logo.svg';
-import './App.css';
+// App.js
+import React from 'react';          // Ensure React is imported (especially for older React versions)
+import ConsultancyPage from './Components/form';  // Correct import path for ConsultancyPage component
+import './App.css';                 // Ensure the CSS file exists
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+      <div className="App">         {/* Add a wrapper div with a class for styling */}
+          <ConsultancyPage />       {/* Make sure the component is imported and used correctly */}
+      </div>
   );
 }
 
