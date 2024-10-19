@@ -153,11 +153,19 @@ def predict():
     print(f"Loan Status: {prediction_label[0]}")
     print("Reasons for decision based on SHAP values:")
     
+    reasons_summary={}
     for feature, value in shap_summary.items():
         contribution_value = value[0]  # Access the first value in the array
         contribution = "increases" if contribution_value > 0 else "decreases"
         print(f"The feature '{feature}' {contribution} the likelihood of approval by {abs(contribution_value):.4f}")
-    return jsonify({'loan_status': prediction_label[0]})
+        reasons_summary[feature] = f"The feature '{feature}' {contribution} the likelihood of approval by {abs(contribution_value):.4f}"
+
+    #return jsonify({'loan_status': prediction_label[0]})
+    return jsonify({
+        'loan_status': prediction_label[0],
+        'reasons_summary': reasons_summary
+    })
+
 
 if __name__ == '__main__':
     app.run(debug=True)
