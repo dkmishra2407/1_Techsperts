@@ -14,6 +14,7 @@ const HomePage = () => {
       { id: 'L004', status: 'rejected', shapReport: 'link4' },
     ];
     setLoans(fetchedLoans);
+    
   }, []);
 
   const totalLoans = loans.length;

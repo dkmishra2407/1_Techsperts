@@ -5,7 +5,6 @@ from sklearn.ensemble import RandomForestClassifier
 import numpy as np
 from flask_cors import CORS
 import shap
-import io
 
 # Initialize the Flask app
 app = Flask(__name__)
@@ -43,6 +42,63 @@ rf_model.fit(X_scaled, y)
 # Create a SHAP explainer
 explainer = shap.TreeExplainer(rf_model)
 
+# Required fields for input
+required_fields = [
+    'no_of_dependents', 'education', 'self_employed',
+    'income_annum', 'loan_amount', 'loan_term',
+    'cibil_score', 'residential_assets_value',
+    'commercial_assets_value', 'luxury_assets_value',
+    'bank_asset_value'
+]
+
+@app.route('/predict', methods=['POST'])
+def predict():
+    # Validate JSON input
+    if not request.is_json:
+        return jsonify({'error': 'Invalid content type. JSON expected.'}), 400
+    
+    input_data = request.json
+
+    # Validate input fields
+    missing_fields = [field for field in required_fields if field not in input_data]
+    if missing_fields:
+        return jsonify({'error': f'Missing required fields: {", ".join(missing_fields)}'}), 400
+
+    try:
+        # Extract and transform features
+        features = np.array([float(input_data[field]) for field in required_fields])
+        features_scaled = scaler.transform([features])
+
+        # Make prediction
+        prediction = rf_model.predict(features_scaled)
+        prediction_label = label_encoders['loan_status'].inverse_transform(prediction)
+
+        # Compute SHAP values
+        shap_values = explainer.shap_values(features_scaled)
+        
+        # Ensure that the correct index is selected for SHAP values
+        predicted_class_index = prediction[0]  # This is the predicted class index (0 or 1 for loan_status)
+
+        # SHAP values for the predicted class
+        shap_summary = dict(zip(X.columns, shap_values[predicted_class_index][0]))
+
+        # Construct reasons summary
+        reasons_summary = {
+            feature: f"The feature '{feature}' {'increases' if value > 0 else 'decreases'} the likelihood of approval by {abs(value):.4f}"
+            for feature, value in shap_summary.items()
+        }
+
+        # Return response
+        return jsonify({
+            'loan_status': prediction_label[0],
+            'reasons_summary': reasons_summary
+        })
+
+    except Exception as e:
+        return jsonify({'error': f'Error processing input: {str(e)}'}), 500
+
+
+
 @app.route('/predict_excel', methods=['POST'])
 def predict_excel():
     # Check if a file is provided
@@ -55,14 +111,6 @@ def predict_excel():
         df_input = pd.read_excel(file)
     except Exception:
         return jsonify({'error': 'Invalid file format'}), 400
-
-    required_fields = [
-        'no_of_dependents', 'education', 'self_employed',
-        'income_annum', 'loan_amount', 'loan_term',
-        'cibil_score', 'residential_assets_value',
-        'commercial_assets_value', 'luxury_assets_value',
-        'bank_asset_value'
-    ]
 
     # Validate input file columns
     missing_columns = [field for field in required_fields if field not in df_input.columns]
@@ -105,6 +153,7 @@ def predict_excel():
             })
 
     return jsonify({'predictions': predictions})
+
 
 if __name__ == '__main__':
     app.run(debug=True)
